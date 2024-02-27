@@ -2,10 +2,11 @@ import express from "express";
 import cors from "cors";
 import router from "./router.js";
 import cookieParser from "cookie-parser";
+import { ORIGINS } from "./config.js";
 
 const app = express();
 
-app.use(cors({ origin: ["https://quizmeee.onrender.com", "http://localhost:3000"], credentials: true }));
+app.use(cors({ origin: ORIGINS, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
