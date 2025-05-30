@@ -1,17 +1,16 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import { Account, Quiz, QuizRecord } from "./models/models.js";
-import { Configuration, OpenAIApi } from "openai";
 import { verifyJWT } from "./controllers/auth_contoller.js";
+import { MONGODB_URI } from "./config.js";
+import { generateQuestions } from "./llm/awan.js";
 
 // loading .env file
 dotenv.config();
-const JWT_SECRET = process.env.JWT_SECRET;
-const DATABASE = process.env.DATABASE;
 
 // connecting to the database
 try {
-  await mongoose.connect(DATABASE, { useNewUrlParser: true, useUnifiedTopology: true });
+  await mongoose.connect(MONGODB_URI);
   console.log("\nConnected to mongodb database.");
 } catch (e) {
   console.log(`\nCannot connect to mongodb database.\nError:${e}`);
@@ -338,39 +337,16 @@ const getProfileInfo = async (req, res) => {
 const useAiToGenerateQuestions = async (req, res) => {
   const { text, quizId, numberOfQuestions } = req.body;
   console.log(`Generating AI questions \n\ttext: ${text}\n\tquizId: ${quizId}\n\tNum of Q:${numberOfQuestions}`);
-  // res.send({ code: 200, text: text, numberOfQuestions: numberOfQuestions });
   try {
-    const rawAiText = (await autoGenerateQuestions(text, numberOfQuestions))[0].message.content;
-    if (rawAiText === "Error") {
-      res.send({ code: 500, message: "Internal Server Error" });
-    } else {
-      const questionsArray = rawAiText.split(/\d+\.\s+/).slice(1);
-      for (let i = 0; i < questionsArray.length; i++) {
-        const choices = questionsArray[i].trim().split(/\n/).slice(1); // remove the question and split the choices
-        let correct_answer = -1;
-        for (let j = 0; j < choices.length; j++) {
-          if (choices[j].includes("||")) {
-            correct_answer = j;
-            choices[j] = choices[j].replace(/\s?\|\|(\s|$)/g, "");
-          }
-          choices[j] = choices[j].replace(/(A|B|C|D)\.(\s)?/g, "");
-        }
-        await addquestionfunc(quizId, {
-          question: questionsArray[i].split(/\n/)[0].trim(),
-          choices: choices,
-          correct_answer: correct_answer,
-        });
-      }
-      res.send({ code: 200, message: "Successful" });
-    }
+    const questions = await generateQuestions(text, numberOfQuestions);
+    for (const q of questions) await addquestionfunc(quizId, q);
+    res.status(200).json({ message: "Success" });
   } catch (err) {
     console.log(err);
     res.send({ code: 500, message: "Internal Server Error" });
   }
 };
 
-const configuration = new Configuration({ apiKey: process.env.OPENAI_API_KEY });
-const openai = new OpenAIApi(configuration);
 
 const autoGenerateQuestions = async (text, numberOfQuestions) => {
   // const prompt = `Strictly follow these instructions.\nExamine the text below in detail then create 2 tricky questions that have 4 tricky choices each which only one is correct. Use letters to enumerate choices and ensure that the end of the correct choice is marked ||. Format: <QuestionNumber>.<Question>\n<Choices>\n\nText: ${text}`;

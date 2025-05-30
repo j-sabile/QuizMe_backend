@@ -1,25 +1,27 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "QuizMe is an innovative and user-friendly platform designed to revolutionize knowledge testing and exam preparation for students. With QuizMe, users have the power to create personalized quizzes effortlessly, whether by manually crafting questions or utilizing the cutting-edge AI technology to automatically generate questions from their notes. The platform's versatility caters to diverse learning styles and allows users to evaluate their understanding of various subjects, simulate exam conditions, and track their progress over time",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/j-sabile/QuizMe_backend/issues"
+  },
+  "homepage": "https://github.com/j-sabile/QuizMe_backend#readme",
   "dependencies": {
-    "axios": "^1.4.0",
-    "bcrypt": "^5.1.0",
-    "cookie-parser": "^1.4.6",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.0",
-    "mongoose": "^7.0.3",
-    "needle": "^3.2.0",
-    "openai": "^3.2.1"
+    "dotenv": "^16.5.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.1",
   }
 }
