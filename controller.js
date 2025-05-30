@@ -4,6 +4,7 @@ import { Account, Quiz, QuizRecord } from "./models/models.js";
 import { verifyJWT } from "./controllers/auth_contoller.js";
 import { MONGODB_URI } from "./config.js";
 import { generateQuestions } from "./llm/awan.js";
+import { generateQuestions as groq} from "./llm/groq.js";
 
 // loading .env file
 dotenv.config();
@@ -338,7 +339,8 @@ const useAiToGenerateQuestions = async (req, res) => {
   const { text, quizId, numberOfQuestions } = req.body;
   console.log(`Generating AI questions \n\ttext: ${text}\n\tquizId: ${quizId}\n\tNum of Q:${numberOfQuestions}`);
   try {
-    const questions = await generateQuestions(text, numberOfQuestions);
+    // const questions = await generateQuestions(text, numberOfQuestions);
+    const questions = await groq(text, numberOfQuestions);    
     for (const q of questions) await addquestionfunc(quizId, q);
     res.status(200).json({ message: "Success" });
   } catch (err) {
