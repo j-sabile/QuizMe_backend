@@ -15,7 +15,7 @@ const generateQuestions = async (notes, numberOfQuestions) => {
 Each item should include:
 - "question": the question string
 - "choices": an array of 4 answer choices
-- "correct_answer": the index (0-3) of the correct answer
+- "correctAnswer": the index (0-3) of the correct answer
 
 Only return a JSON array. No explanation or text before or after.
 

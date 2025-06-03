@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
-import { Account, Quiz, QuizRecord } from "./models/models.js";
+import { Account, Question, Quiz, QuizRecord } from "./models/models.js";
 import { verifyJWT } from "./controllers/auth_contoller.js";
 import { MONGODB_URI } from "./config.js";
 import { generateQuestions } from "./llm/awan.js";
-import { generateQuestions as groq} from "./llm/groq.js";
+import { generateQuestions as groq } from "./llm/groq.js";
 
 // loading .env file
 dotenv.config();
@@ -34,7 +34,7 @@ const addquestionfunc = async (quizId, questionItem) => {
   const newQuestion = {
     question: questionItem.question,
     choices: questionItem.choices,
-    correct_answer: questionItem.correct_answer,
+    correctAnswer: questionItem.correctAnswer,
   };
   quiz.questions.push(newQuestion);
   await quiz.save();
@@ -95,19 +95,21 @@ const getQuizQuestions = async (req, res) => {
 // user-based
 
 const createQuiz = async (req, res) => {
-  const { title, description, privacy } = req.body;
+  const { title, shortDescription, longDescription, privacy } = req.body;
   const payload = verifyJWT(req.cookies.jwt);
   if (payload) {
     const newQuiz = new Quiz({
-      title: title,
-      description: description,
+      title: title || "My Quiz",
+      image: `https://picsum.photos/id/${Math.floor(Math.random() * 100 + 1)}/800`,
+      shortDescription: shortDescription || "Can you answer my quiz?",
+      longDescription: longDescription || "",
       owner_id: payload._id,
-      privacy: privacy,
+      privacy: privacy || "Private",
     });
     await newQuiz.save();
-    res.send({ code: 201, message: "Successfully created the quiz.", quizId: newQuiz._id });
+    res.status(201).json({ message: "Successfully created the quiz.", quizId: newQuiz._id });
   } else {
-    res.send({ code: 401, message: "Log in to create a quiz." });
+    res.status(401).json({ message: "Log in to create a quiz." });
   }
 };
 
@@ -169,17 +171,17 @@ const takeQuiz = async (req, res) => {
 
 const getQuizInfo = async (req, res) => {
   try {
-    const payload = verifyJWT(req.cookies.jwt);
-    const quiz = await Quiz.findById(req.body.quizId).lean();
-    if (payload._id === quiz.owner_id.toString()) {
-      quiz.admin = true;
-      return res.send(quiz);
-    } else {
-      quiz.admin = false;
-      return res.send(quiz);
-    }
+    const { id } = req.query;
+    const quiz = await Quiz.findById(id).populate("questions");
+    if (!quiz) return res.status(404).json({ message: "Quiz not found" });
+    const quizObj = {
+      ...quiz.toObject(),
+      isOwner: String(quiz.owner_id) === String(req.userId),
+    };
+    return res.status(200).json({ quiz: quizObj });
   } catch (err) {
-    return res.send("ERROR");
+    console.error(err.message);
+    return res.status(500).json({ message: "Server error." });
   }
 };
 
@@ -224,7 +226,10 @@ const getQuizFeed = async (req, res) => {
       .sort({ createdAt: -1 });
     res.send({ code: 200, message: "Success (Logged In)", quizFeed: publicQuizzes });
   } else {
-    const publicQuizzes = await Quiz.find({ privacy: "Public" }).select("-can_be_edited_by -questions").populate({ path: "owner_id", select: "username" }).sort({ createdAt: -1 });
+    const publicQuizzes = await Quiz.find({ privacy: "Public" })
+      .select("-can_be_edited_by -questions")
+      .populate({ path: "owner_id", select: "username" })
+      .sort({ createdAt: -1 });
     res.send({ code: 200, message: "Success (Not Logged In)", quizFeed: publicQuizzes });
   }
 };
@@ -269,7 +274,9 @@ const getProfileInfo = async (req, res) => {
     // if own account
     if (targetAccount._id.toString() === payload._id) {
       const quizzes_created = await Quiz.find({ owner_id: targetAccount._id }).sort({ createdAt: -1 });
-      const quizzes_taken = await QuizRecord.find({ taken_by: targetAccount._id }).populate({ path: "quiz_id", select: "title description" }).sort({ createdAt: -1 });
+      const quizzes_taken = await QuizRecord.find({ taken_by: targetAccount._id })
+        .populate({ path: "quiz_id", select: "title description" })
+        .sort({ createdAt: -1 });
 
       res.send({
         code: 200,
@@ -289,11 +296,17 @@ const getProfileInfo = async (req, res) => {
       res.send({
         code: 206,
         message: "Success (Friend's Account)",
-        profileInfo: { userInfo: { id: targetAccount._id, username: targetAccount.username, bio: targetAccount.bio }, quizzes_created: quizzes_created, quizzes_taken: [] },
+        profileInfo: {
+          userInfo: { id: targetAccount._id, username: targetAccount.username, bio: targetAccount.bio },
+          quizzes_created: quizzes_created,
+          quizzes_taken: [],
+        },
       });
       // not friend
     } else {
-      const quizzes_created = await Quiz.find({ owner_id: targetAccount._id, privacy: "Public" }).select("-can_be_edited_by -questions").sort({ createdAt: -1 });
+      const quizzes_created = await Quiz.find({ owner_id: targetAccount._id, privacy: "Public" })
+        .select("-can_be_edited_by -questions")
+        .sort({ createdAt: -1 });
 
       // if received a friend request
       if (myAccount.friends.received.includes(targetAccount._id.toString())) {
@@ -336,19 +349,22 @@ const getProfileInfo = async (req, res) => {
 };
 
 const useAiToGenerateQuestions = async (req, res) => {
-  const { text, quizId, numberOfQuestions } = req.body;
-  console.log(`Generating AI questions \n\ttext: ${text}\n\tquizId: ${quizId}\n\tNum of Q:${numberOfQuestions}`);
+  const { text, quizId } = req.body;
+  // console.log(`Generating AI questions \n\ttext: ${text}\n\tquizId: ${quizId}`);
   try {
     // const questions = await generateQuestions(text, numberOfQuestions);
-    const questions = await groq(text, numberOfQuestions);    
-    for (const q of questions) await addquestionfunc(quizId, q);
+    const numberOfQuestions = Math.floor(text.length / 150) + 1;
+    const questions = await groq(text, numberOfQuestions);
+    const questionIds = await Question.insertMany(questions);
+    await Quiz.findByIdAndUpdate(quizId, { $push: { questions: { $each: questionIds } } });
+    // for (const q of questions) await addquestionfunc(quizId, q);
     res.status(200).json({ message: "Success" });
   } catch (err) {
     console.log(err);
+    console.log(err.message);
     res.send({ code: 500, message: "Internal Server Error" });
   }
 };
-
 
 const autoGenerateQuestions = async (text, numberOfQuestions) => {
   // const prompt = `Strictly follow these instructions.\nExamine the text below in detail then create 2 tricky questions that have 4 tricky choices each which only one is correct. Use letters to enumerate choices and ensure that the end of the correct choice is marked ||. Format: <QuestionNumber>.<Question>\n<Choices>\n\nText: ${text}`;

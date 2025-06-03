@@ -1,10 +1,30 @@
 import mongoose from "mongoose";
 
-const questionSchema = new mongoose.Schema({
-  question: { type: String, required: true },
-  choices: { type: [String], required: true },
-  correct_answer: { type: Number, required: true },
-});
+const questionSchema = new mongoose.Schema(
+  {
+    question: { type: String, required: true },
+    choices: { type: [String], required: true },
+    correctAnswer: { type: Number, required: true },
+    explanation: { type: String, required: false },
+  },
+  {
+    toJSON: {
+      virtuals: true,
+      transform: (_, ret) => {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_, ret) => {
+        ret.id = ret._id;
+        delete ret.__v;
+      },
+    },
+  }
+);
 
 const accountSchema = new mongoose.Schema({
   username: { type: String, required: true },
@@ -18,28 +38,49 @@ const accountSchema = new mongoose.Schema({
   },
 });
 
-const quizSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true },
-  privacy: { type: String, required: true },
-  can_be_edited_by: {
-    type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Account" }],
-    default: [],
+const quizSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true },
+    shortDescription: { type: String, required: true },
+    longDescription: { type: String, required: false },
+    image: { type: String, required: true },
+    type: { type: [String], default: [] },
+    owner_id: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true },
+    privacy: { type: String, required: true },
+    can_be_edited_by: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Account" }],
+      default: [],
+    },
+    questions: { type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }], default: [] },
+    createdAt: { type: Date, default: Date.now },
   },
-  questions: { type: [questionSchema], default: [] },
-  createdAt: { type: Date, default: Date.now },
-});
+  {
+    toJSON: {
+      virtuals: true,
+      transform: (_, ret) => {
+        ret.id = ret._id;
+        delete ret._id;
+        delete ret.__v;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: (_, ret) => {
+        ret.id = ret._id;
+        delete ret.__v;
+      },
+    },
+  }
+);
 
 const quizRecordSchema = new mongoose.Schema({
-  taken_by: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true },
-  quiz_id: { type: mongoose.Schema.Types.ObjectId, ref: "Quiz", required: true },
+  takenBy: { type: mongoose.Schema.Types.ObjectId, ref: "Account", required: true },
+  quizId: { type: mongoose.Schema.Types.ObjectId, ref: "Quiz", required: true },
   questions: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
     required: true,
   },
-  correct_answers: [{ type: Number, required: true }],
-  user_answers: [{ type: Number }],
+  userAnswers: [{ type: Number }],
   score: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
@@ -47,5 +88,6 @@ const quizRecordSchema = new mongoose.Schema({
 const Account = mongoose.model("Account", accountSchema);
 const Quiz = mongoose.model("Quiz", quizSchema);
 const QuizRecord = mongoose.model("QuizRecord", quizRecordSchema);
+const Question = mongoose.model("Question", questionSchema);
 
-export { Account, Quiz, QuizRecord };
+export { Account, Quiz, QuizRecord, Question };
