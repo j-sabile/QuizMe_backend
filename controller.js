@@ -103,7 +103,7 @@ const createQuiz = async (req, res) => {
       image: `https://picsum.photos/id/${Math.floor(Math.random() * 100 + 1)}/800`,
       shortDescription: shortDescription || "Can you answer my quiz?",
       longDescription: longDescription || "",
-      owner_id: payload._id,
+      userId: payload._id,
       privacy: privacy || "Private",
     });
     await newQuiz.save();
@@ -117,7 +117,7 @@ const getPublicQuizzes = async (req, res) => {
   res.send(
     await Quiz.aggregate([
       { $match: { privacy: "Public" } },
-      { $lookup: { from: "accounts", localField: "owner_id", foreignField: "_id", as: "account" } },
+      { $lookup: { from: "accounts", localField: "userId", foreignField: "_id", as: "account" } },
       { $project: { createdAt: 1, _id: 1, title: 1, description: 1, owner_username: { $arrayElemAt: ["$account.username", 0] } } },
     ]).sort({ createdAt: -1 })
   );
@@ -176,7 +176,7 @@ const getQuizInfo = async (req, res) => {
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     const quizObj = {
       ...quiz.toObject(),
-      isOwner: String(quiz.owner_id) === String(req.userId),
+      isOwner: String(quiz.userId) === String(req.userId),
     };
     return res.status(200).json({ quiz: quizObj });
   } catch (err) {
@@ -189,7 +189,7 @@ const deleteQuiz = async (req, res) => {
   const { quizId } = req.body;
   const payload = verifyJWT(req.cookies.jwt);
   const quiz = await Quiz.findById(quizId);
-  if (payload._id === quiz.owner_id.toString()) {
+  if (payload._id === quiz.userId.toString()) {
     await Quiz.findByIdAndDelete(quizId);
     res.send({ code: 204, message: "Successfully deleted the quiz" });
   } else {
@@ -218,17 +218,17 @@ const getQuizFeed = async (req, res) => {
     const myAccount = await Account.findById(payload._id);
     const publicQuizzes = await Quiz.find({
       $or: [
-        { privacy: "Public", owner_id: { $ne: payload._id } },
-        { privacy: "Friends", owner_id: { $in: myAccount.friends.current, $nin: [payload._id] } },
+        { privacy: "Public", userId: { $ne: payload._id } },
+        { privacy: "Friends", userId: { $in: myAccount.friends.current, $nin: [payload._id] } },
       ],
     })
-      .populate({ path: "owner_id", select: "username" })
+      .populate({ path: "userId", select: "username" })
       .sort({ createdAt: -1 });
     res.send({ code: 200, message: "Success (Logged In)", quizFeed: publicQuizzes });
   } else {
     const publicQuizzes = await Quiz.find({ privacy: "Public" })
       .select("-can_be_edited_by -questions")
-      .populate({ path: "owner_id", select: "username" })
+      .populate({ path: "userId", select: "username" })
       .sort({ createdAt: -1 });
     res.send({ code: 200, message: "Success (Not Logged In)", quizFeed: publicQuizzes });
   }
@@ -273,7 +273,7 @@ const getProfileInfo = async (req, res) => {
   if (targetAccount && payload) {
     // if own account
     if (targetAccount._id.toString() === payload._id) {
-      const quizzes_created = await Quiz.find({ owner_id: targetAccount._id }).sort({ createdAt: -1 });
+      const quizzes_created = await Quiz.find({ userId: targetAccount._id }).sort({ createdAt: -1 });
       const quizzes_taken = await QuizRecord.find({ taken_by: targetAccount._id })
         .populate({ path: "quiz_id", select: "title description" })
         .sort({ createdAt: -1 });
@@ -290,7 +290,7 @@ const getProfileInfo = async (req, res) => {
     }
     // if currently friends
     else if (myAccount.friends.current.includes(targetAccount._id.toString())) {
-      const quizzes_created = await Quiz.find({ owner_id: targetAccount._id, privacy: { $in: ["Public", "Friends"] } })
+      const quizzes_created = await Quiz.find({ userId: targetAccount._id, privacy: { $in: ["Public", "Friends"] } })
         .select("-can_be_edited_by -questions")
         .sort({ createdAt: -1 });
       res.send({
@@ -304,7 +304,7 @@ const getProfileInfo = async (req, res) => {
       });
       // not friend
     } else {
-      const quizzes_created = await Quiz.find({ owner_id: targetAccount._id, privacy: "Public" })
+      const quizzes_created = await Quiz.find({ userId: targetAccount._id, privacy: "Public" })
         .select("-can_be_edited_by -questions")
         .sort({ createdAt: -1 });
 
@@ -336,7 +336,7 @@ const getProfileInfo = async (req, res) => {
 
     // if target acc is found but not logged in
   } else if (targetAccount) {
-    const quizzes_created = await Quiz.find({ owner_id: targetAccount._id, privacy: "Public" }).select("-can_be_edited_by -questions").sort({ createdAt: -1 });
+    const quizzes_created = await Quiz.find({ userId: targetAccount._id, privacy: "Public" }).select("-can_be_edited_by -questions").sort({ createdAt: -1 });
 
     res.send({
       code: 206,
@@ -388,7 +388,7 @@ const editQuiz = async (req, res) => {
   const { quizId, privacy } = req.body;
   const payload = verifyJWT(req.cookies.jwt);
   const quiz = await Quiz.findById(quizId);
-  if (quiz.owner_id.toString() === payload._id) {
+  if (quiz.userId.toString() === payload._id) {
     await Quiz.findByIdAndUpdate(quizId, { privacy: privacy }, { new: true });
     res.send({ code: 200, message: "Successfully edited the quiz" });
   } else {

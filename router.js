@@ -19,11 +19,13 @@ import {
   search,
 } from "./controller.js";
 
+import isAuthenticated from "./middlewares/isAuthenticated.js";
+
 import { createAcc, logIn, logOut, isLoggedIn, getUsername } from "./controllers/auth_contoller.js";
-import { addQuestion } from "./controllers/question.js";
 import { editQuizInfo, getQuizzes, submitQuiz } from "./controllers/quiz.js";
 import { getQuizRecord } from "./controllers/quizResult.js";
-import isAuthenticated from "./middlewares/isAuthenticated.js";
+import { addQuestion } from "./controllers/question.js";
+import { getUser } from "./controllers/user.js";
 
 // TODO: fix route names
 const router = (app) => {
@@ -31,12 +33,14 @@ const router = (app) => {
   app.post("/isloggedin", isLoggedIn);
   app.post("/createacc", createAcc);
   app.post("/login", logIn);
-  app.post("/logout", logOut);
+  app.get("/logout", logOut);
   app.post("/getusername", getUsername);
   app.post("/getprofileinfo", getProfileInfo);
   app.post("/addfriend", addAccount);
   app.post("/acceptfriendrequest", acceptFriendRequest);
   app.post("/search", search);
+
+  app.get("/users/:id", isAuthenticated, getUser)
 
   // question
   // app.post("/addquestion", addquestion);

@@ -31,7 +31,7 @@ const editQuizInfo = async (req, res) => {
 const submitQuiz = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userAnswers, questionIds } = req.body;
+    const { userAnswers, questionIds, dateTaken, durationSeconds } = req.body;
     const quiz = await Quiz.findById(id);
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
@@ -43,6 +43,8 @@ const submitQuiz = async (req, res) => {
       quizId: id,
       questions: questionIds,
       userAnswers,
+      dateTaken,
+      durationSeconds,
       score,
     }).save();
     return res.status(200).json({ message: "Success", resultId: newQuizRecord._id });
