@@ -21,7 +21,7 @@ import {
 
 import isAuthenticated from "./middlewares/isAuthenticated.js";
 
-import { createAcc, logIn, logOut, isLoggedIn, getUsername } from "./controllers/auth_contoller.js";
+import { createAcc, logIn, logOut, isLoggedIn, getUsername, googleLogIn } from "./controllers/auth_contoller.js";
 import { editQuizInfo, getQuizzes, submitQuiz } from "./controllers/quiz.js";
 import { getQuizRecord } from "./controllers/quizResult.js";
 import { addQuestion } from "./controllers/question.js";
@@ -40,18 +40,20 @@ const router = (app) => {
   app.post("/acceptfriendrequest", acceptFriendRequest);
   app.post("/search", search);
 
-  app.get("/users/:id", isAuthenticated, getUser)
+  app.post("/auth/oauth", googleLogIn);
+
+  app.get("/users/:id", isAuthenticated, getUser);
 
   // question
   // app.post("/addquestion", addquestion);
-  app.post("/quizzes/:id/questions", isAuthenticated, addQuestion)
+  app.post("/quizzes/:id/questions", isAuthenticated, addQuestion);
   app.post("/editquestion", editquestion);
   app.post("/deletequestion", deletequestion);
 
   // quiz
   app.post("/generatequiz", generateQuiz);
   app.get("/quiz", isAuthenticated, getQuizInfo);
-  app.patch("/quiz", isAuthenticated, editQuizInfo)
+  app.patch("/quiz", isAuthenticated, editQuizInfo);
   app.get("/quizzes", getQuizzes);
   app.post("/getquizquestions", getQuizQuestions);
   app.post("/quiz", createQuiz);
@@ -61,10 +63,8 @@ const router = (app) => {
   app.post("/deletequiz", deleteQuiz);
 
   // takequiz
-  app.post("/quizzes/:id/submissions", isAuthenticated, submitQuiz )
-  app.get("/result/:id", isAuthenticated, getQuizRecord)
-
-
+  app.post("/quizzes/:id/submissions", isAuthenticated, submitQuiz);
+  app.get("/result/:id", isAuthenticated, getQuizRecord);
 
   app.post("/generatequizrecord", generateQuizRecord);
   app.post("/takequiz", takeQuiz);

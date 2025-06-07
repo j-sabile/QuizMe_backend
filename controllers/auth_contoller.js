@@ -1,8 +1,10 @@
 import { Account } from "../models/models.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config.js";
+import { GOOGLE_CLIENT_ID, JWT_SECRET } from "../config.js";
+import { OAuth2Client } from "google-auth-library";
 
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 const generateJWT = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: "4h" });
 
 // middleware to verify JWT
@@ -35,6 +37,36 @@ const logIn = async (req, res) => {
   res.cookie("jwt", jwt, { httpOnly: true, secure: true, sameSite: "none" });
   res.status(200).json({ message: "Successful login", userId: found._id });
 };
+
+const googleLogIn = async (req, res) => {
+  const { accessToken } = req.body;
+  if (!accessToken) return res.status(400).json({ error: "Access token required" });
+  try {
+    const response = await fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", { headers: { Authorization: `Bearer ${accessToken}` } });
+    if (!response.ok) return res.status(401).json({ error: "Invalid access token", details: await response.json() });
+    const { email, name, picture, verified_email } = await response.json();
+    if (!email || !name) return res.status(400).json({ error: "Incomplete user data" });
+
+    let user = await Account.findOne({ googleEmail: email, isOauth: true });
+    if (!user) {
+      try {
+        user = new Account({ username: name, googleEmail: email, isOauth: true });
+        await user.save();
+      } catch (error) {
+        if (error.code != 11000 || !error.keyPattern.username) throw error;
+        const modifiedUsername = `${name}${Math.floor(Math.random() * 100)}`;
+        user = new Account({ username: modifiedUsername, googleEmail: email, isOauth: true });
+        await user.save();
+      }
+    }
+    const jwt = generateJWT({ username: user.username, _id: user._id });
+    res.cookie("jwt", jwt, { httpOnly: true, secure: true, sameSite: "none" });
+    res.status(200).json({ message: "Successful login", userId: user._id });
+  } catch (err) {
+    console.error("Error fetching user info:", err.message);
+    return res.status(500).json({ error: "Server error." });
+  }
+};
 const logOut = async (req, res) => {
   res.clearCookie("jwt", { sameSite: "none", secure: true });
   res.send("Successfully logout");
@@ -49,4 +81,4 @@ const getUsername = (req, res) => {
   payload ? res.send(payload.username) : res.send(false);
 };
 
-export { createAcc, logIn, logOut, isLoggedIn, getUsername, verifyJWT };
+export { createAcc, logIn, googleLogIn, logOut, isLoggedIn, getUsername, verifyJWT };

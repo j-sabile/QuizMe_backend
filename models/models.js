@@ -30,7 +30,9 @@ const accountSchema = new mongoose.Schema(
   {
     username: { type: String, unique: true, required: true },
     bio: { type: String, default: "" },
-    hashedPassword: { type: String, required: true },
+    hashedPassword: { type: String, required: false },
+    googleEmail: { type: String, required: false },
+    isOauth: { type: Boolean, default: false },
     createdAt: { type: Number, default: Date.now() },
   },
   {
