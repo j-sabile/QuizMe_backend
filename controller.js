@@ -172,7 +172,7 @@ const takeQuiz = async (req, res) => {
 const getQuizInfo = async (req, res) => {
   try {
     const { id } = req.query;
-    const quiz = await Quiz.findById(id).populate("questions");
+    const quiz = await Quiz.findById(id).populate("questions").populate({ path: "userId", select: "username" });
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     const quizObj = {
       ...quiz.toObject(),
@@ -304,9 +304,7 @@ const getProfileInfo = async (req, res) => {
       });
       // not friend
     } else {
-      const quizzes_created = await Quiz.find({ userId: targetAccount._id, privacy: "Public" })
-        .select("-can_be_edited_by -questions")
-        .sort({ createdAt: -1 });
+      const quizzes_created = await Quiz.find({ userId: targetAccount._id, privacy: "Public" }).select("-can_be_edited_by -questions").sort({ createdAt: -1 });
 
       // if received a friend request
       if (myAccount.friends.received.includes(targetAccount._id.toString())) {
