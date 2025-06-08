@@ -1,4 +1,5 @@
-import { generateQuestions } from "./llm/awan.js";
+import { generateQuestions } from "./llm/groq.js";
+import { writeFile } from "fs/promises";
 
 const text = `
 Module 1: Introduction to Programming
@@ -34,4 +35,10 @@ Edit
 print("Hello, world!")
 `;
 
-generateQuestions(text, 2);
+const questions = await generateQuestions(text, 2);
+const timestamp = Math.floor(Date.now() / 1000);
+const filename = `${timestamp}.json`;
+console.log(questions);
+
+await writeFile(filename, JSON.stringify(questions, null, 2));
+console.log(`File '${filename}' created and saved.`);
