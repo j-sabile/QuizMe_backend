@@ -24,7 +24,7 @@ import isAuthenticated from "./middlewares/isAuthenticated.js";
 import { createAcc, logIn, logOut, isLoggedIn, getUsername, googleLogIn } from "./controllers/auth_contoller.js";
 import { editQuizInfo, getQuizzes, submitQuiz } from "./controllers/quiz.js";
 import { getQuizRecord } from "./controllers/quizResult.js";
-import { addQuestion } from "./controllers/question.js";
+import { addQuestion, deleteQuestion, editQuestion } from "./controllers/question.js";
 import { getUser } from "./controllers/user.js";
 
 // TODO: fix route names
@@ -47,6 +47,8 @@ const router = (app) => {
   // question
   // app.post("/addquestion", addquestion);
   app.post("/quizzes/:id/questions", isAuthenticated, addQuestion);
+  app.patch("/quizzes/:quizId/questions/:id", isAuthenticated, editQuestion);
+  app.delete("/quizzes/:quizId/questions/:id", isAuthenticated, deleteQuestion);
   app.post("/editquestion", editquestion);
   app.post("/deletequestion", deletequestion);
 

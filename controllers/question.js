@@ -13,4 +13,34 @@ const addQuestion = async (req, res) => {
   }
 };
 
-export { addQuestion };
+const editQuestion = async (req, res) => {
+  const { quizId, id } = req.params;
+  const { question, choices, correctAnswer, explanation } = req.body;
+  
+  try {
+    const quiz = await Quiz.find({ _id: quizId, userId: req.userId, questions: id });
+    if (!quiz) return res.status(400).json({ message: "Incorrect quizId or questionId" });
+    const newQuestion = await new Question({ question, choices, correctAnswer, explanation }).save();
+    await Quiz.findOneAndUpdate({ _id: quizId, questions: id }, { $set: { "questions.$": newQuestion._id } });
+    res.status(200).json({ message: "Successfully edited question" });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error." });
+  }
+};
+
+const deleteQuestion = async (req, res) => {
+  const { quizId, id } = req.params;
+
+  try {
+    const newQuiz = await Quiz.findOneAndUpdate({ _id: quizId, userId: req.userId, questions: id }, { $pull: { questions: id } }, { new: true });
+    if (!newQuiz) return res.status(400).json({ message: "Quiz not found or user unauthorized." });
+    await Question.findByIdAndDelete(id);
+    res.status(200).json({ message: "Successfully deleted question." });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ message: "Server error." });
+  }
+};
+
+export { addQuestion, editQuestion, deleteQuestion };
