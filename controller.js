@@ -176,7 +176,7 @@ const getQuizInfo = async (req, res) => {
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     const quizObj = {
       ...quiz.toObject(),
-      isOwner: String(quiz.userId) === String(req.userId),
+      isOwner: String(quiz.userId.id) === String(req.userId),
     };
     return res.status(200).json({ quiz: quizObj });
   } catch (err) {
