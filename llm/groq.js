@@ -16,7 +16,7 @@ const generateQuestions = async (notes, numberOfQuestions) => {
   "questions": [
     {
       "question": "Clear question text?",
-      "choices": ["A. Choice 1", "B. Choice 2", "C. Choice 3", "D. Choice 4"],
+      "choices": ["Choice 1", "Choice 2", "Choice 3", "Choice 4"],
       "correctAnswer": 0,
       "explanation": "Brief justification mentioning correct + incorrect reasoning naturally."
     }
