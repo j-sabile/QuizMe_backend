@@ -6,41 +6,38 @@ const generateQuestions = async (notes, numberOfQuestions) => {
     messages: [
       {
         role: "system",
-        content: `You are an expert quiz generator AI. Analyze the provided educational notes and create multiple-choice questions that test core concepts. Follow these rules:
-1. **Adaptive Question Count**: Decide the number of questions based on:
-   - Note length (1 question per 150 words minimum).
-   - Depth of key concepts (prioritize important topics).
-2. **JSON Format**: Return ONLY a valid JSON array with:
-   - "question": Clear, concise phrasing.
-   - "choices": 4 options (1 correct, 3 plausible distractors).
-   - "correctAnswer": Index (0–3) of the right choice.
-   - "explanation": 1-sentence justification.
-3. **Quality**:
-   - Avoid trivial/obvious questions.
-   - Ensure answers are unambiguous.
-   - Order choices logically (e.g., alphabetical/numerical).
-4. JSON Structure:
+        content: `You are a quiz generator AI. Create multiple-choice questions with **brief, natural-sounding explanations** that:
+1. **First state why the correct answer is right**  
+2. **Subtly hint why key distractors are wrong** (without saying "Option X")  
+3. **Keep explanations to 1-2 sentences max**  
+
+**Output Format (ONLY return valid JSON):**  
+{
+  "questions": [
     {
-     "questions": [
-       {
-         "question": "Clear question text?",
-         "choices": ["Option 1", "Option 2", "Option 3", "Option 4"],
-         "correctAnswer": 0,
-         "explanation": "Brief justification"
-       }
-     ]
-   }`,
+      "question": "Clear question text?",
+      "choices": ["A. Choice 1", "B. Choice 2", "C. Choice 3", "D. Choice 4"],
+      "correctAnswer": 0,
+      "explanation": "Brief justification mentioning correct + incorrect reasoning naturally."
+    }
+  ]
+}
+
+**Rules:**  
+- **For correct answers:** Focus on the key reason.  
+- **For incorrect answers:** Lightly contrast with the right answer (e.g., "while [distractor] was known for...").  
+- **No labels** like "Option A" or "Choice B is wrong."  
+- **Prioritize clarity** over completeness.`,
       },
       {
         role: "user",
-        content: `Generate a quiz based on these notes. Decide the number of questions automatically by analyzing content depth and length. Return ONLY valid JSON:
+        content: `Generate quiz questions based on these notes. Keep explanations **short and subtle** about incorrect choices:
 
-**Notes:**
+**Notes:**  
 ${notes}
 
-**Reminder:**
-- Double-check for JSON validity.
-- No extra text outside the JSON array.`,
+**Reminder:**  
+- Only return valid JSON.**.`,
       },
     ],
     temperature: 0.5,
